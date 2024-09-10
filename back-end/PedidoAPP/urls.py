@@ -15,9 +15,9 @@ router.register(r'orders', OrderViewSet)
 
 
 router = DefaultRouter()
-router.register(r'upload-orders', OrderUploadViewSet, basename='order-upload')
+router.register(r'upload-orders', OrderUploadViewSet, basename='order-uploadss')
 
-urlpatterns = router.urls
+
 
 urlpatterns = [
     path('', include(router.urls)),

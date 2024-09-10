@@ -17,8 +17,8 @@ class Command(BaseCommand):
         sheet = workbook.active
 
         # Define the starting row and the ending row
-        start_row = 20
-        end_row = 236
+        start_row = 17
+        end_row = 400
 
         for row in range(start_row, end_row + 1):
             alumifont_code = sheet.cell(row=row, column=3).value  # Column C

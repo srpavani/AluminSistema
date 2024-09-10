@@ -69,7 +69,7 @@ class Product(models.Model):
 from math import ceil
 
 class Order(models.Model):
-    request_title = models.CharField(max_length=255)
+    request_title = models.CharField(max_length=255, blank=True, null=True)
     n_containers = models.PositiveIntegerField(default=0, blank=True)
     total_weight = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, blank=True, null=True)
     percentage_under250 = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, blank=True, null=True)
