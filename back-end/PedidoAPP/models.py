@@ -59,7 +59,7 @@ class Product(models.Model):
     length_mm = models.DecimalField(max_digits=10, decimal_places=2)
     temper_alloy = models.CharField(max_length=50)
     weight_m_kg = models.DecimalField(max_digits=10, decimal_places=3)
-    surface_finish = models.ForeignKey(SurfaceFinish, on_delete=models.CASCADE, related_name='products')
+    surface_finish = models.ForeignKey(SurfaceFinish, on_delete=models.SET_NULL, related_name='products', null=True, blank=True)
 
     def __str__(self):
         return self.alumifont_code
