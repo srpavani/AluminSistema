@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 class Agent(models.Model):
     nome = models.CharField(max_length=255)
@@ -47,7 +49,7 @@ class SurfaceFinish(models.Model):
     ]
 
     type = models.CharField(max_length=50, choices=SURFACE_TYPES)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    
 
     def __str__(self):
         return self.type
@@ -64,24 +66,57 @@ class Product(models.Model):
     def __str__(self):
         return self.alumifont_code
 
+from math import ceil
+
 class Order(models.Model):
     request_title = models.CharField(max_length=255)
-    n_containers = models.PositiveIntegerField()
-    total_weight = models.DecimalField(max_digits=10, decimal_places=2)
-    percentage_under250 = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    products = models.ManyToManyField(Product, related_name='orders')
+    n_containers = models.PositiveIntegerField(default=0, blank=True)
+    total_weight = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, blank=True, null=True)
+    percentage_under250 = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, blank=True, null=True)
 
     def calculate_percentage_under_250(self):
-        products_under_250 = self.products.filter(weight_m_kg__lt=0.250)
-        total_weight_under_250 = sum([product.weight_m_kg for product in products_under_250])
+        products_under_250 = self.order_products.filter(product__weight_m_kg__lt=0.250)
+        total_weight_under_250 = sum(order_product.product.weight_m_kg * order_product.quantity for order_product in products_under_250)
         if self.total_weight == 0:
             return 0
         percentage_under_250 = (total_weight_under_250 / self.total_weight) * 100
         return percentage_under_250
 
-    def save(self, *args, **kwargs):
+    def update_calculations(self):
+        # Calcula o peso total dos produtos
+        self.total_weight = sum(order_product.product.weight_m_kg * order_product.quantity for order_product in self.order_products.all())
+        
+        # Calcula o número de containers necessários
+        CONTAINER_CAPACITY_KG = 28000  # Capacidade do container em kg
+        self.n_containers = ceil(self.total_weight / CONTAINER_CAPACITY_KG)
+        
+        # Calcula a porcentagem de peso abaixo de 250g
         self.percentage_under250 = self.calculate_percentage_under_250()
-        super().save(*args, **kwargs)
+        
+        # Salva as alterações
+        self.save(update_fields=['total_weight', 'n_containers', 'percentage_under250'])
 
     def __str__(self):
-        return self.request_title
+        return self.request_title 
+
+class OrderProduct(models.Model):
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='order_products')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='order_products')
+    surface_finish = models.ForeignKey(SurfaceFinish, on_delete=models.CASCADE, related_name='order_products')
+    quantity = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = ('order', 'product', 'surface_finish')
+
+    def __str__(self):
+        return f'{self.quantity} x {self.product.alumifont_code} ({self.surface_finish.type})'
+
+@receiver(post_save, sender=OrderProduct)
+def update_order_on_order_product_save(sender, instance, **kwargs):
+    if instance.order:
+        instance.order.update_calculations()
+
+@receiver(post_delete, sender=OrderProduct)
+def update_order_on_order_product_delete(sender, instance, **kwargs):
+    if instance.order:
+        instance.order.update_calculations()

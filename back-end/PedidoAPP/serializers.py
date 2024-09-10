@@ -31,3 +31,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class FileUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+
