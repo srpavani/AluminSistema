@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import AgentViewSet, CompanyViewSet, SurfaceFinishViewSet, ProductViewSet, OrderViewSet
+from .viewsets import AgentViewSet, CompanyViewSet, SurfaceFinishViewSet, ProductViewSet, OrderViewSet
 from django.urls import path
 from django.conf.urls.static import static
 from django.conf import settings
