@@ -65,7 +65,7 @@ class Product(models.Model):
     alumifont_code = models.CharField(max_length=50, unique=True)  # Sempre o mesmo, independente da fábrica
     ncm = models.CharField(max_length=255, blank=True, null=True)
     image = models.ImageField(upload_to='product_images/', null=True, blank=True)
-    length_mm = models.DecimalField(max_digits=10, decimal_places=2, default=6000)  # Sempre o mesmo (6000)
+    length_mm = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True)  # Sempre o mesmo (6000)
     temper_alloy = models.CharField(max_length=50, default='6063T5')
     surface_finish = models.ForeignKey(SurfaceFinish, on_delete=models.SET_NULL, related_name='products', null=True, blank=True)
     enabled_companies = models.ManyToManyField(Company, related_name='enabled_products', blank=True)  # Empresas que têm acesso ao produto
