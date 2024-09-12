@@ -4,6 +4,7 @@ from .viewsets import AgentViewSet, CompanyViewSet, SurfaceFinishViewSet, Produc
 from django.urls import path
 from django.conf.urls.static import static
 from django.conf import settings
+from .planilhaViewSet import ExcelUploadViewSet
 
 router = DefaultRouter()
 router.register(r'agents', AgentViewSet)
@@ -11,12 +12,8 @@ router.register(r'companies', CompanyViewSet)
 router.register(r'surfacefinishes', SurfaceFinishViewSet)
 router.register(r'products', ProductViewSet)
 router.register(r'orders', OrderViewSet)
-
-
-
-router = DefaultRouter()
-router.register(r'upload-orders', OrderUploadViewSet, basename='order-uploadss')
-
+router.register(r'upload-orders', OrderUploadViewSet, basename='order-upload')
+router.register(r'order-planilhas', ExcelUploadViewSet, basename='order-planilha')
 
 
 urlpatterns = [
