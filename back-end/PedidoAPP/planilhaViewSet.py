@@ -30,30 +30,26 @@ def process_excel_and_create_entries(file_path):
 
     # Obter os nomes das companhias a partir das células específicas (linhas de empresas)
     company_columns = {
-        'H3': {'name': sheet['H3'].value, 'sim_col': 'H'},  # Coluna para SIM verificação
-        'I3': {'name': sheet['I3'].value, 'sim_col': 'I'},
-        'L3': {'name': sheet['L3'].value, 'sim_col': 'L'},
-        'M3': {'name': sheet['M3'].value, 'sim_col': 'M'},
-        'P3': {'name': sheet['P3'].value, 'sim_col': 'P'},
-        'T3': {'name': sheet['T3'].value, 'sim_col': 'T'},  # Empresas separadas por '/'
-        'U3': {'name': sheet['U3'].value, 'sim_col': 'U'},
-        'V3': {'name': sheet['V3'].value, 'sim_col': 'V'},
-        'X3': {'name': sheet['X3'].value, 'sim_col': 'X'},
-        'AA3': {'name': sheet['AA3'].value, 'sim_col': 'AA'},
-        'AB3': {'name': sheet['AB3'].value, 'sim_col': 'AB'}
+        'H1': ['H3', 'L3'],  # Fábrica H1, empresas em H3 e L3
+        'L1': ['L3', 'M3'],  # Fábrica L1, empresas em L3 e M3
+        'P1': ['P3'],        # Fábrica P1, empresas em P3
+        'T1': ['T3'],        # Fábrica T1, empresas em T3
+        'AA1': ['AA3', 'AB3'] # Fábrica AA1, empresas em AA3 e AB3
     }
 
-    # Criar ou obter as empresas (Company)
+    # Criar ou obter as empresas (Company) e verificar se estão associadas corretamente às fábricas
     companies = {}
-    for cell, company_info in company_columns.items():
-        company_name = company_info['name']
-        if company_name:
-            # Algumas colunas têm múltiplas empresas separadas por "/"
-            company_names = [name.strip() for name in company_name.split('/')]
-            for name in company_names:
-                company, _ = Company.objects.get_or_create(name=name)
-                companies[name] = company
-                print(f"Empresa processada: {name}")
+    for factory_key, company_cells in company_columns.items():
+        for cell in company_cells:
+            company_names = sheet[cell].value
+            if company_names:
+                # Algumas colunas têm múltiplas empresas separadas por "/"
+                for name in [name.strip() if isinstance(name, str) else str(name) for name in company_names.split('/')]:
+                    company, _ = Company.objects.get_or_create(name=name)
+                    companies[name] = company
+                    factory = factories[factory_key]
+                    company.factories.add(factory)  # Relaciona a empresa com a fábrica apropriada
+                    print(f"Empresa {name} associada à fábrica {factory.name}")
 
     # Definir as colunas das fábricas e pesos corretamente
     factory_columns = {
@@ -128,24 +124,23 @@ def process_excel_and_create_entries(file_path):
                 print(f"Produto {alumifont_code}: Fábrica {factory_cell} não oferece este produto.")
 
         # Verificar empresas habilitadas ("SIM") para este produto e criar relação
-        for company_col, company_info in company_columns.items():
-            enabled_value = sheet[company_info['sim_col'] + str(row[0].row)].value
-            if enabled_value and enabled_value.strip().upper() == "SIM":
-                company_name = company_info['name']
-                company = companies.get(company_name)
-                if company:
-                    # Certifique-se de que a empresa é adicionada ao Many-to-Many `enabled_companies`
-                    product.enabled_companies.add(company)
-                    print(f"Produto {alumifont_code} habilitado para a companhia: {company_name}")
-
-                    # Relacionar a empresa à(s) fábrica(s) correspondente(s)
-                    for factory_cell, factory in factories.items():
-                        if factory_code and factory:
-                            company.factories.add(factory)  # Adiciona a fábrica à empresa
-                            print(f"Empresa {company_name} associada à fábrica {factory.name}")
+        for factory_key, company_cells in company_columns.items():
+            for cell in company_cells:
+                enabled_value = sheet[cell[0] + str(row[0].row)].value
+                if enabled_value and isinstance(enabled_value, str) and enabled_value.strip().upper() == "SIM":
+                    company_names = sheet[cell].value
+                    for name in [name.strip() if isinstance(name, str) else str(name) for name in company_names.split('/')]:
+                        company = companies.get(name)
+                        if company:
+                            product.enabled_companies.add(company)
+                            print(f"Produto {alumifont_code} habilitado para a companhia: {name}")
 
         # Salvar o produto após a atualização
         product.save()
+
+
+
+
 
 class ExcelUploadViewSet(viewsets.ViewSet):
     serializer_class = FileUploadSerializer
