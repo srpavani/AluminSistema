@@ -20,8 +20,13 @@ def process_excel_and_create_entries(file_path):
         'T1': sheet['T1'].value,  # Fábrica T1
         'AA1': sheet['AA1'].value  # Fábrica AA1
     }
-    
-    print(f"Fábricas encontradas: {factory_names}")
+
+    # Criar ou obter as fábricas
+    factories = {}
+    for cell, factory_name in factory_names.items():
+        if factory_name:
+            factory, _ = Factory.objects.get_or_create(name=factory_name)
+            factories[cell] = factory
 
     # Obter os nomes das companhias a partir das células específicas (linhas de empresas)
     company_columns = {
@@ -38,15 +43,17 @@ def process_excel_and_create_entries(file_path):
         'AB3': {'name': sheet['AB3'].value, 'sim_col': 'AB'}
     }
 
-    print(f"Companhias encontradas: {company_columns}")
-
-    # Criar ou obter as fábricas
-    factories = {}
-    for cell, factory_name in factory_names.items():
-        if factory_name:
-            factory, _ = Factory.objects.get_or_create(name=factory_name)
-            factories[cell] = factory
-            print(f"Fábrica processada: {factory_name}")
+    # Criar ou obter as empresas (Company)
+    companies = {}
+    for cell, company_info in company_columns.items():
+        company_name = company_info['name']
+        if company_name:
+            # Algumas colunas têm múltiplas empresas separadas por "/"
+            company_names = [name.strip() for name in company_name.split('/')]
+            for name in company_names:
+                company, _ = Company.objects.get_or_create(name=name)
+                companies[name] = company
+                print(f"Empresa processada: {name}")
 
     # Definir as colunas das fábricas e pesos corretamente
     factory_columns = {
@@ -58,7 +65,7 @@ def process_excel_and_create_entries(file_path):
     }
 
     # Processar as linhas da planilha a partir da linha 4 para criar produtos e associá-los
-    for row in sheet.iter_rows(min_row=4, max_row=sheet.max_row):  # Processa todas as linhas relevantes
+    for row in sheet.iter_rows(min_row=4, max_row=sheet.max_row):
         ncm = row[1].value  # Coluna B (NCM)
         alumifont_code = row[3].value  # Coluna D (alumifont_code)
         image = row[4].value  # Coluna E (imagem)
@@ -67,9 +74,7 @@ def process_excel_and_create_entries(file_path):
         # Verificar se o alumifont_code é válido e não nulo
         if not alumifont_code:
             print(f"Erro: Alumifont Code está ausente na linha {row[0].row}.")
-            continue  # Ignorar a linha se não houver código
-
-        print(f"Processando produto: {alumifont_code}")
+            continue
 
         # Criar ou obter o produto
         product, created = Product.objects.get_or_create(
@@ -77,9 +82,9 @@ def process_excel_and_create_entries(file_path):
             defaults={
                 'ncm': ncm,
                 'image': image,
-                'length_mm': length_mm if length_mm else 6000,  # Valor padrão 6000
+                'length_mm': length_mm if length_mm else 6000,
                 'temper_alloy': '6063T5',
-                'surface_finish': None  # Adicionar padrão se necessário
+                'surface_finish': None
             }
         )
 
@@ -100,6 +105,10 @@ def process_excel_and_create_entries(file_path):
                 try:
                     factory = factories.get(factory_cell)
                     if factory:
+                        # Verifique se `factory_code` é uma string antes de usar `strip()`
+                        if isinstance(factory_code, str):
+                            factory_code = factory_code.strip()
+
                         # Substituir vírgula por ponto para lidar com números decimais
                         weight_m_kg = str(weight_m_kg).replace(',', '.')
 
@@ -108,8 +117,8 @@ def process_excel_and_create_entries(file_path):
                             factory=factory,
                             product=product,
                             defaults={
-                                'factory_code': factory_code.strip(),  # Remover espaços em branco
-                                'weight_m_kg': float(weight_m_kg)  # Converter para float após substituir vírgula
+                                'factory_code': factory_code,
+                                'weight_m_kg': float(weight_m_kg)
                             }
                         )
                         print(f"Produto {alumifont_code} associado à fábrica {factory_cell} com código {factory_code} e peso {weight_m_kg}.")
@@ -118,18 +127,25 @@ def process_excel_and_create_entries(file_path):
             else:
                 print(f"Produto {alumifont_code}: Fábrica {factory_cell} não oferece este produto.")
 
-        # Verificar empresas habilitadas ("SIM") para este produto
-        enabled_companies = []
+        # Verificar empresas habilitadas ("SIM") para este produto e criar relação
         for company_col, company_info in company_columns.items():
             enabled_value = sheet[company_info['sim_col'] + str(row[0].row)].value
             if enabled_value and enabled_value.strip().upper() == "SIM":
-                enabled_companies.append(company_info['name'])
-                print(f"Produto {alumifont_code} está habilitado para a companhia: {company_info['name']}")
+                company_name = company_info['name']
+                company = companies.get(company_name)
+                if company:
+                    # Certifique-se de que a empresa é adicionada ao Many-to-Many `enabled_companies`
+                    product.enabled_companies.add(company)
+                    print(f"Produto {alumifont_code} habilitado para a companhia: {company_name}")
+
+                    # Relacionar a empresa à(s) fábrica(s) correspondente(s)
+                    for factory_cell, factory in factories.items():
+                        if factory_code and factory:
+                            company.factories.add(factory)  # Adiciona a fábrica à empresa
+                            print(f"Empresa {company_name} associada à fábrica {factory.name}")
 
         # Salvar o produto após a atualização
         product.save()
-
-
 
 class ExcelUploadViewSet(viewsets.ViewSet):
     serializer_class = FileUploadSerializer
