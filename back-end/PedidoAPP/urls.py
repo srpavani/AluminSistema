@@ -16,6 +16,15 @@ router.register(r'upload-orders', OrderUploadViewSet, basename='order-upload')
 router.register(r'order-planilhas', ExcelUploadViewSet, basename='order-planilha')
 
 
+
+from .views import create_order, load_factories, load_products, order_success
+
 urlpatterns = [
     path('', include(router.urls)),
+    path('create-order/', create_order, name='create_order'),
+    path('ajax/load-factories/', load_factories, name='load_factories'),
+    path('ajax/load-products/', load_products, name='load_products'),# AJAX para carregar produtos
+    path('order-success/', order_success, name='order_success')
+    
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

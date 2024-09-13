@@ -29,34 +29,13 @@ class Company(models.Model):
     ie = models.CharField(max_length=20, unique=True, null=True, blank=True)
     factories = models.ManyToManyField(Factory)  # Empresas podem fazer pedidos em várias fábricas
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name='companies', null=True, blank=True)
+    typeCompany = models.IntegerField(default=1)# Se o cliente for type ==2 pode editar o tamanho do produto
 
     def __str__(self):
         return self.name
 
 class SurfaceFinish(models.Model):
-    MILL_FINISH = 'Mill Finish'
-    SILVER_ANODIZED = 'Silver Anodized (FAYP01)'
-    WHITE_POWDER_COAT = 'White Powder Coat'
-    BRONZE_ANODIZED = 'Bronze Anodized (FAYP03)'
-    BLACK_ANODIZED = 'Black Anodized (FAYP06)'
-    ELECT_CHAMPAGNE = 'Elect. Champagne (FAYH02)'
-    WOOD_FINISH_FA2134 = 'Wood Finish (FA2134-1)'
-    WOOD_FINISH_LIGHT = 'Wood Finish (Light)'
-    RUST_FINISH = 'Rust Finish'
-
-    SURFACE_TYPES = [
-        (MILL_FINISH, 'Mill Finish'),
-        (SILVER_ANODIZED, 'Silver Anodized (FAYP01)'),
-        (WHITE_POWDER_COAT, 'White Powder Coat'),
-        (BRONZE_ANODIZED, 'Bronze Anodized (FAYP03)'),
-        (BLACK_ANODIZED, 'Black Anodized (FAYP06)'),
-        (ELECT_CHAMPAGNE, 'Elect. Champagne (FAYH02)'),
-        (WOOD_FINISH_FA2134, 'Wood Finish (FA2134-1)'),
-        (WOOD_FINISH_LIGHT, 'Wood Finish (Light)'),
-        (RUST_FINISH, 'Rust Finish'),
-    ]
-
-    type = models.CharField(max_length=50, choices=SURFACE_TYPES)
+    type = models.CharField(max_length=50,blank=True, null=True)
 
     def __str__(self):
         return self.type

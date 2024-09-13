@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Pedido</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<div class="container mt-5">
+    <h1>Criar Pedido</h1>
+
+    <form method="post">
+        <button type="submit" class="btn btn-primary">Criar Pedido</button>
+        {% csrf_token %}
+        <h3>Selecione a Empresa e a Fábrica</h3>
+        <div class="form-group">
+            {{ order_form.as_p }}
+        </div>
+
+        <h3>Produtos Disponíveis</h3>
+        <div id="product-table-container">
+            <!-- A tabela de produtos será carregada aqui via AJAX -->
+        </div>
+
+        <button type="submit" class="btn btn-primary">Criar Pedido</button>
+    </form>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        // Quando a empresa for alterada, carregue as fábricas
+        $('#id_company').change(function () {
+            var companyId = $(this).val();  // Obtém o ID da empresa selecionada
+            
+            if (companyId) {
+                $.ajax({
+                    url: '{% url "load_factories" %}',  // URL da função que carrega as fábricas
+                    data: {
+                        'company_id': companyId  // Passa o ID da empresa selecionada
+                    },
+                    success: function (data) {
+                        $('#id_factory').html(data);  // Atualiza o dropdown de fábrica com as opções
+                    },
+                    error: function (xhr, status, error) {
+                        console.log(xhr.responseText);  // Exibe o erro no console, se houver
+                    }
+                });
+            } else {
+                $('#id_factory').html('<option value="">---------</option>');  // Reseta o dropdown
+            }
+        });
+
+        // Quando a fábrica for alterada, carregue os produtos
+        $('#id_factory').change(function () {
+            var companyId = $('#id_company').val();
+            var factoryId = $(this).val();  // Obtém o ID da fábrica selecionada
+
+            if (companyId && factoryId) {
+                $.ajax({
+                    url: '{% url "load_products" %}',  // URL para carregar os produtos
+                    data: {
+                        'company': companyId,
+                        'factory': factoryId
+                    },
+                    success: function (data) {
+                        $('#product-table-container').html(data);  // Atualiza o container com os produtos
+                    },
+                    error: function (xhr, status, error) {
+                        console.log(xhr.responseText);  // Exibe o erro no console, se houver
+                    }
+                });
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

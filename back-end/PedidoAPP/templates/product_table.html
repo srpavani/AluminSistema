@@ -1,0 +1,36 @@
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>AlumiFonte Code</th>
+            <th>Imagem</th>
+            {% for finish in surface_finishes %}
+                <th>{{ finish.type }}</th>
+            {% endfor %}
+            <th>Tamanho em mm</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for product in products %}
+        <tr>
+            <td>{{ product.alumifont_code }}</td>
+            <td>
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" width="100">
+                {% else %}
+                    Sem Imagem
+                {% endif %}
+            </td>
+            {% for finish in surface_finishes %}
+                <td>
+                    <input type="number" name="product_{{ product.id }}_finish_{{ finish.id }}" min="0" class="form-control" value="0">
+                </td>
+            {% endfor %}
+                <td>{{ product.length_mm }}</td>
+        </tr>
+       
+        {% endfor %}
+        
+
+
+    </tbody>
+</table>
