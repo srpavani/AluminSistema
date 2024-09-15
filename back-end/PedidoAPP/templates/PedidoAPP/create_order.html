@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fazer Pedido</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<div class="container mt-5">
+    <h1>Fazer Pedido</h1>
+    
+    <!-- Seção para Seleção de Empresa e Fábrica -->
+    <form id="order-form" method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="company-select">Selecione a Empresa</label>
+            <select id="company-select" name="company" class="form-control">
+                {% for company in companies %}
+                    <option value="{{ company.id }}">{{ company.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="factory-select">Selecione a Fábrica</label>
+            <select id="factory-select" name="factory" class="form-control">
+                <!-- Fábricas serão carregadas via AJAX -->
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="search_query">Buscar Produto pelo Alumifont Code</label>
+            <input type="text" id="search_query" class="form-control" placeholder="Digite o código do Alumifont">
+        </div>
+
+        <!-- Tabela de Produtos -->
+        <table class="table table-bordered">
+            <thead>
+                
+            </thead>
+            <tbody id="product-table-body">
+                <!-- Produtos serão carregados via AJAX -->
+            </tbody>
+        </table>
+        
+        <!-- Produtos Adicionados ao Pedido -->
+        <h3>Produtos Adicionados ao Pedido</h3>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Imagem</th>
+                    <th>Alumifont Code</th>
+                    <th>Quantidade</th>
+                    <th>Tamanho (mm)</th>
+                    <th>Peso (kg)</th>
+                    <th>Peso total</th>
+                </tr>
+            </thead>
+            <tbody id="order-items">
+                <!-- Produtos adicionados serão mostrados aqui -->
+            </tbody>
+        </table>
+
+        <h4>Total do Pedido</h4>
+        <p>Peso total do pedido: <span id="total-weight">0 kg</span></p>
+        <p>Número de containers: <span id="n-containers">0</span></p>
+
+
+        <button type="submit" class="btn btn-primary">Finalizar Pedido</button>
+    </form>
+</div>
+
+<!-- Inclua o código JavaScript no final do arquivo HTML -->
+<script type="text/javascript">
+    $(document).ready(function() {
+        // Carregar as fábricas quando a empresa for selecionada
+        $('#company-select').change(function() {
+            var companyId = $(this).val();
+    
+            if (companyId) {
+                $.ajax({
+                    url: '{% url "load_factoriesonly" %}',  // URL da função que carrega as fábricas
+                    data: {
+                        'company_id': companyId
+                    },
+                    success: function(data) {
+                        $('#factory-select').html(data);  // Atualiza o dropdown de fábrica com as opções
+                    },
+                    error: function(xhr, status, error) {
+                        console.log("Erro ao carregar as fábricas: " + error);
+                    }
+                });
+            } else {
+                $('#factory-select').html('<option value="">Selecione uma fábrica</option>');  // Reseta o dropdown se nenhuma empresa for selecionada
+            }
+        });
+    
+        // Carregar produtos quando a fábrica for selecionada ou buscar produto
+        $('#factory-select').change(function() {
+            loadProducts();
+        });
+    
+        $('#search_query').keyup(function() {
+            loadProducts();
+        });
+    
+        function loadProducts() {
+            var companyId = $('#company-select').val();
+            var factoryId = $('#factory-select').val();
+            var searchQuery = $('#search_query').val();
+    
+            if (companyId && factoryId) {
+                $.ajax({
+                    url: '{% url "load_productsonly" %}',
+                    data: {
+                        'company_id': companyId,
+                        'factory_id': factoryId,
+                        'search_query': searchQuery
+                    },
+                    success: function(data) {
+                        $('#product-table-body').html(data);  // Atualiza a tabela de produtos
+                    },
+                    error: function(xhr, status, error) {
+                        console.log("Erro ao carregar os produtos: " + error);
+                    }
+                });
+            }
+        }
+    
+        // Adicionar produto ao pedido
+        $(document).on('click', '.add-to-order', function(e) {
+            e.preventDefault();  // Prevenir o comportamento padrão de envio
+    
+            var productId = $(this).data('product-id');
+            var factoryId = $('#factory-select').val();
+            var finishId = $('#finish_' + productId).val();
+            var quantity = $('#quantity_' + productId).val();
+    
+            // Verifique se o factoryId está preenchido corretamente
+            if (!factoryId) {
+                alert('Por favor, selecione uma fábrica antes de adicionar produtos.');
+                return; // Pare a execução caso não haja fábrica selecionada
+            }
+    
+            $.ajax({
+                url: '{% url "add_to_orderonly" %}',
+                data: {
+                    'product_id': productId,
+                    'factory_id': factoryId,
+                    'finish_id': finishId,
+                    'quantity': quantity
+                },
+                success: function(data) {
+                    // Atualize a tabela de pedidos com os produtos adicionados
+                    $('#order-items').append(`
+                        <tr>
+                            <td>${data.alumifont_code}</td>
+                            <td>${data.quantity}</td>
+                            <td>${data.length_mm}</td>
+                            <td>${data.weight_m_kg}</td>
+                            <td>${data.total_weight_product.toFixed(2)}</td>
+                        </tr>
+                    `);
+    
+                    // Atualize o peso total do pedido e o número de containers
+                    $('#total-weight').text(data.total_weight_order.toFixed(2) + ' kg');
+                    $('#n-containers').text(data.n_containers);
+                },
+                error: function(xhr, status, error) {
+                    console.log("Erro ao adicionar o produto: " + error);
+                }
+            });
+        });
+    });
+    
+</script>
+
+</body>
+</html>

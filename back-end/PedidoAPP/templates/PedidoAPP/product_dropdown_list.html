@@ -1,0 +1,40 @@
+
+
+<!-- Lista de Produtos -->
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Imagem</th>
+            <th>Alumifont Code</th>
+            <th>Produto</th>
+            <th>Quantidade</th>
+            <th>Acabamento</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="product-table-body">
+        <!-- Loop para exibir cada produto -->
+        {% for product in products %}
+        <tr>
+            <td>{{ product.image }}</td>
+            <td>{{ product.alumifont_code }}</td>
+            <td>{{ product.name }}</td>
+            <td><input type="number" id="quantity_{{ product.id }}" value="1" min="1"></td>
+            <td>
+                <select id="finish_{{ product.id }}">
+                    {% for finish in surface_finishes %}
+                        <option value="{{ finish.id }}">{{ finish.type }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td>
+                <button class="btn btn-primary add-to-order" 
+                        data-product-id="{{ product.id }}" 
+                        data-factory-id="{{ factory.id }}">
+                    Add ao Pedido
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

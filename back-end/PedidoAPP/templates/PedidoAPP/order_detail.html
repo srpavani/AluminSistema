@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Pedido</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+    <h1>Detalhes do Pedido</h1>
+    
+    <h3>Pedido: {{ order.request_title }}</h3>
+    <p>Empresa: {{ order.company.name }}</p>
+    <p>Fábrica: {{ order.factory.name }}</p>
+
+    <!-- Tabela de Produtos do Pedido -->
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Imagem</th>
+                <th>Alumifont Code</th>
+                <th>Quantidade</th>
+                <th>Acabamento</th>
+                <th>Tamanho (mm)</th>
+                <th>Peso por metro (kg)</th>
+                <th>Peso total do produto (kg)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order_products %}
+            <tr>
+                <td>
+                    {% if item.product_image %}
+                        <img src="{{ item.product_image }}" alt="Imagem do Produto" style="max-width: 100px;">
+                    {% else %}
+                        Sem Imagem
+                    {% endif %}
+                </td>
+                <td>{{ item.alumifont_code }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.surface_finish }}</td>
+                <td>{{ item.length_mm }}</td>
+                <td>{{ item.weight_m_kg }}</td>
+                <td>{{ item.total_weight_product|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Peso total e número de containers -->
+    <h4>Resumo do Pedido</h4>
+    <p>Peso total do pedido: {{ total_weight_order|floatformat:2 }} kg</p>
+    <p>Número de containers: {{ n_containers }}</p>
+
+    <!-- Link para voltar ou finalizar -->
+    <a href="{% url 'create_order' %}" class="btn btn-primary">Novo Pedido</a>
+</div>
+</body>
+</html>
